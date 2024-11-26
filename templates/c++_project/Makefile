@@ -25,8 +25,8 @@ NO_STDOUT = 1>/dev/null
 NO_STDERR = 2>/dev/null
 NO_PROMPT = $(NO_STDOUT) $(NO_STDERR)
 
-all: create_filesystem
-	@ $(CC) $(FLAGS) $(MAIN) $(MODULES) -o $(OUTPUT)
+all: filesystem
+	@ $(CC) $(FLAGS) $(MAIN) $(MODULES) -o $(OUTPUT)
 	@ $(OUTPUT)
 
 filesystem:	
