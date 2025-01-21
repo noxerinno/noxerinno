@@ -14,7 +14,7 @@ TEST_DIR = ./tests
 
 # Files
 MAIN = $(SRC_DIR)/Main.cpp
-OUTPUT = $(BUILD_DIR)/main.o
+OUTPUT = $(BUILD_DIR)/Main.o
 README = README.md
 
 ###### Defining prompt colors & utils ###### 
