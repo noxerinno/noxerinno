@@ -39,6 +39,10 @@ define CAPITALIZE
 $(shell echo $(1) | tr a-z A-Z)
 endef
 
+define LOWERCASE
+$(shell echo $(1) | tr A-Z a-z)
+endef
+
 ###### Prompt colors & utils ###### 
 GREEN = \033[0;32m
 RED = \033[0;31m
@@ -192,46 +196,33 @@ clean:
 	@ echo "${GREEN}Cleaner: ${NO_COLOR}Binaries cleaned"
 
 
-
-
-
-# help: TARGET_LIST = $(shell grep -E '^##[[:space:]]+[a-zA-Z0-9_-]+[[:space:]]*-' Makefile | sed -E 's/##[[:space:]]+([a-zA-Z0-9_-]+).*/\1/')
-# help:
-# 	@ if [ -z $(TARGET) ] || [ ! grep -q $(TARGET) $(TARGET_LIST) ]; then \
-# 	    echo "Available targets:"; \
-# 	    awk ' \
-# 	        /^## NOM/ { nom=$$0; getline; synopsis=$$0; print substr(nom,4) "    " substr(synopsis,4) } \
-# 	    ' $(MAKEFILE_LIST); \
-# 	else \
-# 	    awk -v t="$$TARGET" ' \
-# 	        BEGIN{in_target=0} \
-# 	        /^##/ { if(in_target){print substr($$0,4)} } \
-# 	        new_target: /^[a-zA-Z0-9\-_]+:/ { in_target = ($$0 ~ "^"t":") } \
-# 	    ' $(MAKEFILE_LIST); \
-# 	fi
-
-# help:
-# 	@TARGET="$(TARGET)"; \
-# 	if [ -z "$$TARGET" ]; then \
-# 		awk ' \
-# 			/^## NAME/ { \
-# 				getline; split($$0,a," - "); target=a[1]; desc=a[2]; \
-# 				getline; getline; split($$0,b,"make "); synopsis="make "b[2]; \
-# 				printf "[%s]    %s    %s\n", target, desc, synopsis \
-# 			}' $(MAKEFILE_LIST); \
-# 	else \
-# 		awk -v tgt="$$TARGET" ' \
-# 			BEGIN{in_target=0} \
-# 			/^## NAME/ { \
-# 				getline; split($$0,a," - "); target=a[1]; \
-# 				if(target==tgt) in_target=1; else in_target=0 \
-# 			} \
-# 			in_target && /^##/ { print substr($$0,4) } \
-# 		' $(MAKEFILE_LIST) | if grep -q .; then cat; else make help; fi
-
+help: TARGET_LIST = $(shell grep -E '^##[[:space:]]+[a-zA-Z0-9_-]+[[:space:]]*-' Makefile | sed -E 's/##[[:space:]]+([a-zA-Z0-9_-]+).*/\1/')
+	  CAPITALIZED_TARGET=$(call CAPITALIZE, $(TARGET))
+	  LOWERCASE_TARGET=$(call LOWERCASE, $(TARGET))
 help:
-	@ if [[ ! *"$(TARGET)"* == "$(TARGET_LIST)" ]]; then \
-		echo "Good condition"; \
+# 	@ echo "TARGET : $(TARGET)\nCAPITALIZED_TARGET : $(CAPITALIZED_TARGET)\nLOWERCASE_TARGET: $(LOWERCASE_TARGET)\nTARGET_LIST : $(TARGET_LIST)\nMAKEFILE_LIST : $(MAKEFILE_LIST)"
+
+	@ if [ -z "$(TARGET)" ] || [ ! $(findstring $(LOWERCASE_TARGET), $(TARGET_LIST)) ]; then \
+		printf "${GREEN}%-16s${NO_COLOR}  %-76s %s\n" "[TARGET NAME]" "DESCRIPTION" "EXEMPLE"; \
+		awk ' \
+			/^## NAME/ { \
+				getline; split($$0,a," - "); split(a[1],b,"##     "); target="["b[2]"]"; desc=a[2]; \
+				getline; getline; getline; split($$0,b,"make "); synopsis="make "b[2]; \
+				printf "${GREEN}%-16s${NO_COLOR}  %-76s %s\n", target, desc, synopsis \
+			}' $(MAKEFILE_LIST); \
 	else \
-		echo "Other condition"; \
-	fi
+		awk -v tgt="$(CAPITALIZED_TARGET)" ' \
+			BEGIN { in_block=0 } \
+			/^# =+/ { \
+				getline; \
+				line=$$0; gsub(/^#[ \t]+/, "", line); gsub(/[ \t]+$$/, "", line); \
+				if (line == tgt) { in_block=1; getline } \
+			} \
+			in_block && /^## / { sub(/^##[ \t]*/, "", $$0); print; next } \
+			in_block && $$0 !~ /^## / { exit } \
+		' $(MAKEFILE_LIST) | \
+		if grep -q .; then cat; else \
+			echo "${RED}Unknown target: $(TARGET)${NO_COLOR}"; \
+			echo "Run 'make help' to see available targets"; \
+		fi ; \
+	fi 
