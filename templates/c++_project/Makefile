@@ -196,13 +196,14 @@ clean:
 	@ echo "${GREEN}Cleaner: ${NO_COLOR}Binaries cleaned"
 
 
+
 help: TARGET_LIST = $(shell grep -E '^##[[:space:]]+[a-zA-Z0-9_-]+[[:space:]]*-' Makefile | sed -E 's/##[[:space:]]+([a-zA-Z0-9_-]+).*/\1/')
 	  CAPITALIZED_TARGET=$(call CAPITALIZE, $(TARGET))
 	  LOWERCASE_TARGET=$(call LOWERCASE, $(TARGET))
 help:
 # 	@ echo "TARGET : $(TARGET)\nCAPITALIZED_TARGET : $(CAPITALIZED_TARGET)\nLOWERCASE_TARGET: $(LOWERCASE_TARGET)\nTARGET_LIST : $(TARGET_LIST)\nMAKEFILE_LIST : $(MAKEFILE_LIST)"
 
-	@ if [ -z "$(TARGET)" ] || [ ! $(findstring $(LOWERCASE_TARGET), $(TARGET_LIST)) ]; then \
+	@ if [ -z "$(TARGET)" ] || ! echo "$(TARGET_LIST)" | grep -wq "$(LOWERCASE_TARGET)"; then \
 		printf "${GREEN}%-16s${NO_COLOR}  %-76s %s\n" "[TARGET NAME]" "DESCRIPTION" "EXEMPLE"; \
 		awk ' \
 			/^## NAME/ { \
@@ -211,7 +212,8 @@ help:
 				printf "${GREEN}%-16s${NO_COLOR}  %-76s %s\n", target, desc, synopsis \
 			}' $(MAKEFILE_LIST); \
 	else \
-		awk -v tgt="$(CAPITALIZED_TARGET)" ' \
+		CATCH=$$(echo "$(TARGET)" | tr '[:lower:]' '[:upper:]' | xargs); \
+		awk -v tgt="$$CATCH" ' \
 			BEGIN { in_block=0 } \
 			/^# =+/ { \
 				getline; \
@@ -222,7 +224,7 @@ help:
 			in_block && $$0 !~ /^## / { exit } \
 		' $(MAKEFILE_LIST) | \
 		if grep -q .; then cat; else \
-			echo "${RED}Unknown target: $(TARGET)${NO_COLOR}"; \
+			echo "${RED}Unknown target: $$CATCH${NO_COLOR}"; \
 			echo "Run 'make help' to see available targets"; \
 		fi ; \
-	fi 
+	fi
